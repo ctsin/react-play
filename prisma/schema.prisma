@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Vocabulary {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  word       String   @unique
+  phonetic   String?
+  definition String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Self-referential many-to-many relationship for similar vocabularies
+  similarTo   VocabularyRelation[] @relation("SimilarVocabularies")
+  similarFrom VocabularyRelation[] @relation("RelatedVocabularies")
+
+  @@map("vocabularies")
+}
+
+model VocabularyRelation {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // The main vocabulary
+  vocabularyId String     @db.ObjectId
+  vocabulary   Vocabulary @relation("SimilarVocabularies", fields: [vocabularyId], references: [id])
+
+  // The similar/related vocabulary
+  relatedId String     @db.ObjectId
+  related   Vocabulary @relation("RelatedVocabularies", fields: [relatedId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([vocabularyId, relatedId], name: "vocabularyId_relatedId")
+  @@map("vocabulary_relations")
+}
