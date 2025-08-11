@@ -2,7 +2,6 @@ import { useLoaderData } from "react-router";
 import type { LoaderFunctionArgs } from "react-router";
 import prisma from "~/lib/prisma";
 import BackButton from "~/components/BackButton";
-import VocabularyHeader from "~/components/VocabularyHeader";
 import VocabularyCard from "~/components/VocabularyCard";
 import type { Vocabulary, VocabularyRelation } from "~/types/vocabulary";
 
@@ -35,7 +34,12 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 type LoaderData = {
   vocabulary: Vocabulary;
-  relatedFromWords: VocabularyRelation[];
+  relatedFromWords: {
+    id: string;
+    vocabularyId: string;
+    relatedId: string;
+    vocabulary: Vocabulary;
+  }[];
 };
 
 export default function VocabularyRelatedFrom() {
@@ -49,7 +53,7 @@ export default function VocabularyRelatedFrom() {
       </div>
 
       {/* Header */}
-      <VocabularyHeader vocabulary={vocabulary} />
+      <h1 className="text-4xl font-bold">{vocabulary.word}</h1>
 
       {/* Related From Words */}
       <div className="flex flex-col gap-4">
