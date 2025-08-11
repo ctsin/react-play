@@ -1,9 +1,5 @@
-type Vocabulary = {
-  id: string;
-  word: string;
-  phonetic: string | null;
-  definition: string | null;
-};
+import { memo } from "react";
+import type { Vocabulary } from "~/types/vocabulary";
 
 type SearchResultsProps = {
   searchResults: Vocabulary[];
@@ -11,7 +7,7 @@ type SearchResultsProps = {
   onRecordClick: (e: React.MouseEvent, vocabId: string, isSelected: boolean) => void;
 };
 
-export default function SearchResults({ searchResults, selectedIds, onRecordClick }: SearchResultsProps) {
+function SearchResults({ searchResults, selectedIds, onRecordClick }: SearchResultsProps) {
   if (searchResults.length === 0) return null;
 
   return (
@@ -52,3 +48,5 @@ export default function SearchResults({ searchResults, selectedIds, onRecordClic
     </div>
   );
 }
+
+export default memo(SearchResults);

@@ -69,7 +69,7 @@ export default function Create() {
           to="/"
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
         >
-          <span>←Back</span>
+          <span>← Home</span>
         </Link>
       </div>
       <Form method="post" className="flex flex-col gap-4">

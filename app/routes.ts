@@ -11,6 +11,7 @@ export default [
     route("about", "routes/about.tsx"),
     route("create", "routes/create.tsx"),
     route("vocabulary/:id", "routes/vocabulary.$id.tsx"),
+    route("related-from/:id", "routes/related-from.$id.tsx"),
     route("api/search", "routes/api.search.tsx"),
     route("api/remove-relation", "routes/api.remove-relation.tsx"),
     route("api/delete-word", "routes/api.delete-word.tsx"),

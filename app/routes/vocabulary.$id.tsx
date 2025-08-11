@@ -5,13 +5,9 @@ import _ from "lodash";
 import prisma from "~/lib/prisma";
 import SearchResults from "~/components/SearchResults";
 import DeleteWordButton from "~/components/DeleteWordButton";
-
-type Vocabulary = {
-  id: string;
-  word: string;
-  phonetic: string | null;
-  definition: string | null;
-};
+import BackButton from "~/components/BackButton";
+import VocabularyHeader from "~/components/VocabularyHeader";
+import type { Vocabulary, VocabularyRelation } from "~/types/vocabulary";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const vocabulary = await prisma.vocabulary.findUnique({
@@ -38,6 +34,11 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   return { vocabulary, similarWords };
 }
+
+type LoaderData = {
+  vocabulary: Vocabulary;
+  similarWords: VocabularyRelation[];
+};
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -70,7 +71,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function VocabularyDetail() {
   const { vocabulary, similarWords: loadedSimilarWords } =
-    useLoaderData<typeof loader>();
+    useLoaderData<LoaderData>();
   const fetcher = useFetcher();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
@@ -143,8 +144,8 @@ export default function VocabularyDetail() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ relationId }),
       });
-      // Reload the page to refresh the similar words
-      window.location.reload();
+      // Refresh the page to update similar words
+      navigate(0);
     } catch (error) {
       console.error("Error removing relation:", error);
     }
@@ -207,26 +208,11 @@ export default function VocabularyDetail() {
     <div className="flex flex-col gap-10">
       {/* Navigation Bar */}
       <div className="flex justify-between items-center">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-        >
-          <span>←Back</span>
-        </Link>
+        <BackButton />
         <DeleteWordButton vocabularyId={vocabulary.id} word={vocabulary.word} />
       </div>
       {/* Vocabulary Details */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-4xl font-bold">{vocabulary.word}</h1>
-          {vocabulary.phonetic && (
-            <span className="text-xl text-gray-600">{vocabulary.phonetic}</span>
-          )}
-        </div>
-        {vocabulary.definition && (
-          <p className="text-lg">{vocabulary.definition}</p>
-        )}
-      </div>
+      <VocabularyHeader vocabulary={vocabulary} />
 
       {/* Similar Words Section */}
       {similarWords.length > 0 && (
@@ -239,7 +225,7 @@ export default function VocabularyDetail() {
                 className="inline-flex items-center bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
               >
                 <Link
-                  to={`/vocabulary/${relation?.related.id}`}
+                  to={`/related-from/${relation?.related.id}`}
                   className="px-3 py-1 hover:bg-blue-200 rounded-l-full"
                 >
                   {relation?.related.word}

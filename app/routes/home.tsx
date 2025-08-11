@@ -1,5 +1,7 @@
 import { Link, useLoaderData } from "react-router";
 import prisma from "~/lib/prisma";
+import VocabularyCard from "~/components/VocabularyCard";
+import type { Vocabulary } from "~/types/vocabulary";
 
 export async function loader() {
   const vocabularies = await prisma.vocabulary.findMany({
@@ -8,8 +10,12 @@ export async function loader() {
   return { vocabularies };
 }
 
+type LoaderData = {
+  vocabularies: Vocabulary[];
+};
+
 export default function Home() {
-  const { vocabularies } = useLoaderData<typeof loader>();
+  const { vocabularies } = useLoaderData<LoaderData>();
 
   return (
     <div className="flex flex-col gap-4">
@@ -22,19 +28,12 @@ export default function Home() {
 
       <div className="bg-gray-100 rounded">
         {vocabularies.map((vocab, index) => (
-          <Link
+          <VocabularyCard
             key={vocab.id}
+            vocabulary={vocab}
             to={`/vocabulary/${vocab.id}`}
-            className={`block p-4 hover:bg-gray-200 transition-colors ${index > 0 ? "border-t border-gray-200" : ""}`}
-          >
-            <div className="flex items-baseline gap-2">
-              <strong className="text-2xl">{vocab.word}</strong>
-              {vocab.phonetic && (
-                <span className="text-gray-600">{vocab.phonetic}</span>
-              )}
-            </div>
-            {vocab.definition && <p className="mt-2">{vocab.definition}</p>}
-          </Link>
+            className={index > 0 ? "border-t border-gray-200" : ""}
+          />
         ))}
       </div>
     </div>
