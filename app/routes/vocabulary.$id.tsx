@@ -1,4 +1,10 @@
-import { useLoaderData, Link, useFetcher, useNavigate } from "react-router";
+import {
+  useLoaderData,
+  Link,
+  useFetcher,
+  useNavigate,
+  useSubmit,
+} from "react-router";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useState, useCallback, useEffect, useRef } from "react";
 import _ from "lodash";
@@ -42,63 +48,71 @@ type LoaderData = {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const selectedIds = JSON.parse(formData.get("selectedIds") as string);
+
+  const similarWords = await prisma.vocabularyRelation.findMany({
+    where: {
+      vocabularyId: params.id as string,
+    },
+    include: {
+      related: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const similarWordIds = similarWords.map(
+    (similarWord) => similarWord.relatedId
+  );
+
+  const isExisted = similarWordIds.includes(
+    formData.get("relatedId") as string
+  );
+
+  const relatedId = formData.get("relatedId") as string;
   const vocabularyId = params.id as string;
 
-  try {
-    for (const relatedId of selectedIds) {
-      await prisma.vocabularyRelation.upsert({
+  if (isExisted) {
+    try {
+      await prisma.vocabularyRelation.delete({
         where: {
           vocabularyId_relatedId: {
             vocabularyId,
             relatedId,
           },
         },
-        update: {},
-        create: {
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Delete error:", error);
+      return { error: "Failed to delete similar words" };
+    }
+  } else {
+    try {
+      await prisma.vocabularyRelation.create({
+        data: {
           vocabularyId,
           relatedId,
         },
       });
-    }
 
-    return { success: true };
-  } catch (error) {
-    console.error("Save error:", error);
-    return { error: "Failed to save similar words" };
+      return { success: true };
+    } catch (error) {
+      console.error("Save error:", error);
+      return { error: "Failed to save similar words" };
+    }
   }
 }
 
 export default function VocabularyDetail() {
-  const { vocabulary, similarWords: loadedSimilarWords } =
-    useLoaderData<LoaderData>();
+  const { vocabulary, similarWords } = useLoaderData<LoaderData>();
   const fetcher = useFetcher();
+  const submit = useSubmit();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [searchResults, setSearchResults] = useState<Vocabulary[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
-  const isInitialRender = useRef(true);
-
-  // Compute similarWords including selected items and excluding removed items
-  const existingRelatedIds = new Set(loadedSimilarWords.map(sw => sw.related.id));
-  const similarWords = [
-    ...loadedSimilarWords.filter(sw => !removedIds.has(sw.related.id)),
-    ...Array.from(selectedIds)
-      .filter(id => !existingRelatedIds.has(id))
-      .map((id) => {
-        const word = searchResults.find((w) => w.id === id);
-        return word
-          ? {
-              id: `temp-${id}`,
-              vocabularyId: vocabulary.id,
-              relatedId: id,
-              related: word,
-            }
-          : null;
-      })
-      .filter(Boolean),
-  ];
 
   const debouncedSearch = useCallback(
     _.debounce(async (query: string) => {
@@ -106,8 +120,7 @@ export default function VocabularyDetail() {
         try {
           const excludeIds = [
             vocabulary.id,
-            ...loadedSimilarWords.map((sw) => sw.related.id),
-            ...Array.from(selectedIds),
+            ...similarWords.map((sw) => sw.related.id),
           ];
           const response = await fetch(
             `/api/search?q=${encodeURIComponent(
@@ -123,7 +136,7 @@ export default function VocabularyDetail() {
         setSearchResults([]);
       }
     }, 300),
-    [vocabulary.id, loadedSimilarWords, selectedIds]
+    [vocabulary.id, similarWords]
   );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,58 +164,22 @@ export default function VocabularyDetail() {
     }
   };
 
-  const handleRecordClick = (
-    e: React.MouseEvent,
-    vocabId: string,
-    isSelected: boolean
-  ) => {
-    e.preventDefault();
-    if (isSelected) {
-      // Remove from selected
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(vocabId);
-        return newSet;
-      });
-      // If it exists in loaded similar words, mark it as removed
-      if (existingRelatedIds.has(vocabId)) {
-        setRemovedIds((prev) => new Set(prev).add(vocabId));
-      }
-    } else {
-      // Add to selected
-      setSelectedIds((prev) => new Set(prev).add(vocabId));
-      // Remove from removed list if it was there
-      setRemovedIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(vocabId);
-        return newSet;
-      });
-    }
+  const handleRecordClick = (vocabId: string) => {
+    submit({ relatedId: vocabId }, { method: "POST" });
   };
 
   // Reset state when vocabulary changes
   useEffect(() => {
     setSearchValue("");
     setSearchResults([]);
-    setSelectedIds(new Set());
-    setRemovedIds(new Set());
-    isInitialRender.current = true;
   }, [vocabulary.id]);
 
-  // Auto-submit selected IDs
+  // Reload data after successful submission
   useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      return;
+    if (fetcher.state === "idle" && fetcher.data?.success) {
+      navigate(0);
     }
-
-    if (selectedIds.size > 0) {
-      fetcher.submit(
-        { selectedIds: JSON.stringify(Array.from(selectedIds)) },
-        { method: "post" }
-      );
-    }
-  }, [selectedIds]);
+  }, [fetcher.state, fetcher.data, navigate]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -269,7 +246,7 @@ export default function VocabularyDetail() {
 
         <SearchResults
           searchResults={searchResults}
-          selectedIds={selectedIds}
+          selectedIds={new Set()}
           onRecordClick={handleRecordClick}
         />
 

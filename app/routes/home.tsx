@@ -19,12 +19,20 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        to="create"
-        className="bg-blue-500 text-white p-3 rounded text-center"
-      >
-        Create
-      </Link>
+      <div className="flex gap-2">
+        <Link
+          to="create"
+          className="bg-blue-500 text-white p-3 rounded text-center flex-1"
+        >
+          Create
+        </Link>
+        {/* <Link
+          to="test"
+          className="bg-gray-500 text-white p-3 rounded text-center flex-1"
+        >
+          Test Action/Loader
+        </Link> */}
+      </div>
 
       <div className="bg-gray-100 rounded">
         {vocabularies.map((vocab, index) => (

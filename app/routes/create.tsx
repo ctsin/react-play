@@ -7,7 +7,12 @@ import _ from "lodash";
 import { DICTIONARY } from "~/constants";
 import type { Word } from "~/interface";
 
+export async function loader() {
+  console.log("⭕️⭕️⭕️⭕️⭕️", "loader");
+}
+
 export async function action({ request }: ActionFunctionArgs) {
+  console.log("⭕️⭕️⭕️⭕️⭕️", "action");
   try {
     const formData = await request.formData();
     const word = formData.get("newItem") as string;
@@ -26,7 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     console.log("Item created successfully:", word);
-    return redirect("/");
+    // return redirect("/");
   } catch (error) {
     console.error("Action error:", error);
     return { error: (error as any).message };
@@ -80,6 +85,7 @@ export default function Create() {
           placeholder="Create a new item"
           className="flex-auto p-2 border rounded border-gray-300"
           onChange={handleInputChange}
+          autoFocus
         />
         {dictionaryData && (
           <>
