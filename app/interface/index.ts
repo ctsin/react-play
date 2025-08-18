@@ -1,34 +1,41 @@
+import type { Vocabulary, VocabularyRelation } from "~/types/vocabulary";
+
 export interface Word {
-  word:       string;
-  phonetic:   string;
-  phonetics:  Phonetic[];
-  meanings:   Meaning[];
-  license:    License;
+  word: string;
+  phonetic: string;
+  phonetics: Phonetic[];
+  meanings: Meaning[];
+  license: License;
   sourceUrls: string[];
 }
 
 export interface License {
   name: string;
-  url:  string;
+  url: string;
 }
 
 export interface Meaning {
   partOfSpeech: string;
-  definitions:  Definition[];
-  synonyms:     string[];
-  antonyms:     string[];
+  definitions: Definition[];
+  synonyms: string[];
+  antonyms: string[];
 }
 
 export interface Definition {
   definition: string;
-  synonyms:   string[];
-  antonyms:   string[];
-  example?:   string;
+  synonyms: string[];
+  antonyms: string[];
+  example?: string;
 }
 
 export interface Phonetic {
-  text:       string;
-  audio:      string;
+  text: string;
+  audio: string;
   sourceUrl?: string;
-  license?:   License;
+  license?: License;
 }
+
+export type LoaderData = {
+  vocabulary: Vocabulary;
+  similarWords: VocabularyRelation[];
+};

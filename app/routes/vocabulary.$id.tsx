@@ -1,19 +1,14 @@
-import {
-  useLoaderData,
-  Link,
-  useFetcher,
-  useNavigate,
-  useSubmit,
-} from "react-router";
+import { useLoaderData, Link, useRevalidator } from "react-router";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import _ from "lodash";
 import prisma from "~/lib/prisma";
 import SearchResults from "~/components/SearchResults";
 import DeleteWordButton from "~/components/DeleteWordButton";
 import BackButton from "~/components/BackButton";
 import VocabularyHeader from "~/components/VocabularyHeader";
-import type { Vocabulary, VocabularyRelation } from "~/types/vocabulary";
+import type { Vocabulary } from "~/types/vocabulary";
+import type { LoaderData } from "~/interface";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const vocabulary = await prisma.vocabulary.findUnique({
@@ -40,11 +35,6 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   return { vocabulary, similarWords };
 }
-
-type LoaderData = {
-  vocabulary: Vocabulary;
-  similarWords: VocabularyRelation[];
-};
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -108,9 +98,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function VocabularyDetail() {
   const { vocabulary, similarWords } = useLoaderData<LoaderData>();
-  const fetcher = useFetcher();
-  const submit = useSubmit();
-  const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const [searchValue, setSearchValue] = useState("");
   const [searchResults, setSearchResults] = useState<Vocabulary[]>([]);
 
@@ -157,29 +145,16 @@ export default function VocabularyDetail() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ relationId }),
       });
-      // Refresh the page to update similar words
-      navigate(0);
+      revalidator.revalidate();
     } catch (error) {
       console.error("Error removing relation:", error);
     }
   };
 
-  const handleRecordClick = (vocabId: string) => {
-    submit({ relatedId: vocabId }, { method: "POST" });
-  };
-
   // Reset state when vocabulary changes
   useEffect(() => {
-    setSearchValue("");
-    setSearchResults([]);
+    handleClear();
   }, [vocabulary.id]);
-
-  // Reload data after successful submission
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.success) {
-      navigate(0);
-    }
-  }, [fetcher.state, fetcher.data, navigate]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -244,15 +219,7 @@ export default function VocabularyDetail() {
           )}
         </div>
 
-        <SearchResults
-          searchResults={searchResults}
-          selectedIds={new Set()}
-          onRecordClick={handleRecordClick}
-        />
-
-        {fetcher.state === "submitting" && (
-          <div className="mt-4 text-gray-600">Saving...</div>
-        )}
+        <SearchResults searchResults={searchResults} />
       </div>
     </div>
   );

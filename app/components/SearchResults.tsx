@@ -1,17 +1,25 @@
-import { memo } from "react";
+import { memo, useState } from "react";
+import { useLoaderData, useNavigation, useSubmit } from "react-router";
+import type { LoaderData } from "~/interface";
 import type { Vocabulary } from "~/types/vocabulary";
 
 type SearchResultsProps = {
   searchResults: Vocabulary[];
-  selectedIds: Set<string>;
-  onRecordClick: (vocabId: string) => void;
 };
 
-function SearchResults({
-  searchResults,
-  selectedIds,
-  onRecordClick,
-}: SearchResultsProps) {
+function SearchResults({ searchResults }: SearchResultsProps) {
+  const navigation = useNavigation();
+  const submit = useSubmit();
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  const handleRecordClick = async (vocabId: string) => {
+    setSubmittingId(vocabId);
+    await submit({ relatedId: vocabId }, { method: "POST" });
+  };
+
+  const { similarWords } = useLoaderData<LoaderData>();
+  const similarWordIds = similarWords.map((word) => word.related.id);
+
   if (searchResults.length === 0) return null;
 
   return (
@@ -19,29 +27,28 @@ function SearchResults({
       {searchResults.map((vocab, index) => (
         <div
           key={vocab.id}
-          onClick={() => onRecordClick(vocab.id)}
-          className={`p-4 cursor-pointer transition-colors ${
-            selectedIds.has(vocab.id) ? "bg-blue-100" : "hover:bg-gray-200"
-          } ${index > 0 ? "border-t border-gray-200" : ""}`}
+          onClick={() => handleRecordClick(vocab.id)}
+          className={`flex items-center p-4 cursor-pointer transition-colors hover:bg-gray-200 ${
+            index > 0 ? "border-t border-gray-200" : ""
+          }`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-baseline gap-2">
-                <strong className="text-2xl">{vocab.word}</strong>
-                {vocab.phonetic && (
-                  <span className="text-gray-600">{vocab.phonetic}</span>
-                )}
-              </div>
-              {vocab.definition && <p className="mt-2">{vocab.definition}</p>}
+          <div className="flex-1">
+            <div className="flex items-baseline gap-2">
+              <strong className="text-2xl">{vocab.word}</strong>
+              {vocab.phonetic && (
+                <span className="text-gray-600">{vocab.phonetic}</span>
+              )}
             </div>
-            <div className="ml-4">
-              <input
-                type="checkbox"
-                checked={selectedIds.has(vocab.id)}
-                onChange={() => {}}
-                className="w-5 h-5 border-gray-700"
-              />
-            </div>
+            {vocab.definition && <p className="mt-2">{vocab.definition}</p>}
+          </div>
+          <div className="m-4">
+            {navigation.state === "submitting" && submittingId === vocab.id ? (
+              <div className="w-6 h-6 animate-spin rounded-full border-2 border-x-gray-200 border-y-gray-300"></div>
+            ) : (
+              similarWordIds.includes(vocab.id) && (
+                <div className="w-3 h-6 border-r-2 border-b-2 border-blue-500 rotate-45"></div>
+              )
+            )}
           </div>
         </div>
       ))}

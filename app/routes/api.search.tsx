@@ -5,6 +5,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
   const exclude = url.searchParams.get("exclude");
+  const vocabularyId = url.searchParams.get("vocabularyId");
 
   if (!query) {
     return [];
